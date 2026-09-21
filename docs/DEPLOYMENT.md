@@ -29,6 +29,20 @@ npm run deploy
 
 从部署输出取得站点 URL，填写根目录 `project.config.json` 的 `siteUrl`，重新生成并提交模块。发布源码应与线上运行版本一致；网页底部提供源码入口。若从发布 tag 部署，可将配置中的 `branch` 设为相应 tag 后生成。
 
+### Git 自动构建（Workers Builds）
+
+在控制台 Worker 的 Settings → Build 里连接仓库时，把 **Root directory 设为 `worker`**，Deploy command 用 `npm run deploy`。
+
+注意 Root directory 只会把 `worker/` 这一层检出到构建环境，仓库根目录的 `dist/` 不在其中。因此：
+
+- **不要把 `npm test` 当作 Build command。** `worker/test/wloc-stash-output.test.js` 读取的是根目录的 `dist/wloc.js`；在只检出 `worker/` 的环境里该文件不存在，用例会自动跳过。完整测试交给 GitHub Actions 的 `npm test` 即可。
+- Build command 留空（Cloudflare 会按 lockfile 安装依赖），或写成 `npm ci`。
+
+如果一定要在构建阶段跑完整测试，就把 Root directory 留空，并改为：
+
+- Build command：`npm --prefix worker ci && npm test`
+- Deploy command：`npm --prefix worker run deploy`
+
 ## Cloudflare Pages
 
 ```sh

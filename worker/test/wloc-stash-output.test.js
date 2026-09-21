@@ -59,8 +59,19 @@ async function executeAsStash(script) {
   ]);
 }
 
-test("Stash response scripts return top-level response fields", async () => {
-  const script = await readFile(path.resolve(workerDir, "../dist/wloc.js"), "utf8");
+test("Stash response scripts return top-level response fields", async (t) => {
+  // dist/ 在仓库根目录, 而 worker 的测试也可以在「只检出 worker/」的环境里跑
+  // (例如 Cloudflare Workers Builds 把 root directory 设为 worker)。此时父目录的
+  // 产物不存在, 跳过本用例 —— 它校验的是分发的用户脚本, 不属于 worker 自身的构建。
+  const scriptPath = path.resolve(workerDir, "../dist/wloc.js");
+  let script;
+  try {
+    script = await readFile(scriptPath, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    t.skip(`${scriptPath} 不在当前检出中，跳过`);
+    return;
+  }
   const payload = await executeAsStash(script);
 
   assert.equal(Object.hasOwn(payload, "response"), false);
